@@ -37,26 +37,24 @@ def home():
 @app.route("/api/v1.0/precipitation")
 def precipitation():
     """Results to dictionary to JSON output"""
-    # Calculate the date one year ago from the most recent date
+    #most recent date data
     most_recent_date = session.query(func.max(measurement.date)).scalar()
-    one_year_ago = dt.datetime.strptime(most_recent_date, '%Y-%m-%d') - dt.timedelta(days=365)
+    one_year_from_mrd = dt.datetime.strptime(most_recent_date, '%Y-%m-%d') - dt.timedelta(days=365)
 
-    # Query precipitation data for the last 12 months
+    # Query data
     results = session.query(measurement.date, measurement.prcp)\
-                    .filter(measurement.date >= one_year_ago)\
+                    .filter(measurement.date >= one_year_from_mrd)\
                     .all()
 
-    # Convert the query results to a dictionary
+    #query to dictionary
     precipitation_dict = {date: prcp for date, prcp in results}
-
     return jsonify(precipitation_dict)
 
 @app.route("/api/v1.0/stations")
 def stations():
-    """Return a JSON list of stations"""
+    """Station list (JSON)"""
     results = session.query(station.station).all()
     station_list = [station[0] for station in results]
-
     return jsonify(station_list)
 
 @app.route("/api/v1.0/tobs")
@@ -66,14 +64,11 @@ def tobs():
                                     .group_by(measurement.station)\
                                     .order_by(func.count(measurement.station).desc())\
                                     .first()[0]
-
     results = session.query(measurement.date, measurement.tobs)\
                     .filter(measurement.station == most_active_station,
-                            measurement.date >= one_year_ago)\
+                            measurement.date >= one_year_from_mrd)\
                     .all()
-
     tobs_list = [{"Date": date, "Temperature": tobs} for date, tobs in results]
-
     return jsonify(tobs_list)
 
 @app.route("/api/v1.0/<start>")
@@ -84,9 +79,7 @@ def temp_start(start):
                             func.max(measurement.tobs).label('TMAX'))\
                     .filter(measurement.date >= start)\
                     .all()
-
     temp_data = [{"TMIN": result.TMIN, "TAVG": result.TAVG, "TMAX": result.TMAX} for result in results]
-
     return jsonify(temp_data)
 
 @app.route("/api/v1.0/<start>/<end>")
@@ -97,11 +90,9 @@ def temp_start_end(start, end):
                             func.max(measurement.tobs).label('TMAX'))\
                     .filter(measurement.date >= start, measurement.date <= end)\
                     .all()
-
     temp_data = [{"TMIN": result.TMIN, "TAVG": result.TAVG, "TMAX": result.TMAX} for result in results]
-
     return jsonify(temp_data)
 
-# Run the app
+#Run ittttt
 if __name__ == "__main__":
     app.run(debug=True)
